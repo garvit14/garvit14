@@ -22,27 +22,8 @@ jobs:
           user: garvit14
           filename: metrics.svg
           template: classic
-          base: header, activity, community, repositories
+          base: header
           config_timezone: Asia/Kolkata
-          config_order: base, isocalendar, languages, lines, followup, activity
-
-          plugin_isocalendar: yes
-          plugin_isocalendar_duration: full-year
 
           plugin_lines: yes
-          plugin_lines_sections: base, repositories
-          plugin_lines_repositories_limit: 4
-          plugin_lines_history_limit: 1
-
-          plugin_languages: yes
-          plugin_languages_ignored: html, css, scss
-          plugin_languages_details: bytes-size, percentage
-          plugin_languages_limit: 8
-
-          plugin_followup: yes
-          plugin_followup_sections: repositories, user
-
-          plugin_activity: yes
-          plugin_activity_limit: 5
-          plugin_activity_days: 365
-          plugin_activity_filter: pr, issue, release, fork, review, star
+          plugin_lines_sections: base
