@@ -72,6 +72,30 @@ def paginate_commits(q, max_pages=10):
 prs = search_total(f"type:pr author:{USER} created:>={SINCE}")
 reviews = search_total(f"type:pr -author:{USER} reviewed-by:{USER} updated:>={SINCE}")
 
+# Total contributions (commits + PRs + reviews + issues + discussions) from the
+# profile contribution graph. Includes private/org-restricted activity.
+calendar_resp = gh(
+    "https://api.github.com/graphql",
+    method="POST",
+    data={
+        "query": """
+            query($login: String!, $from: DateTime!, $to: DateTime!) {
+              user(login: $login) {
+                contributionsCollection(from: $from, to: $to) {
+                  contributionCalendar { totalContributions }
+                }
+              }
+            }
+        """,
+        "variables": {
+            "login": USER,
+            "from": ONE_YEAR_AGO.isoformat(),
+            "to": NOW.isoformat(),
+        },
+    },
+)
+contributions = calendar_resp["data"]["user"]["contributionsCollection"]["contributionCalendar"]["totalContributions"]
+
 all_commits = paginate_commits(f"author:{USER} author-date:>={SINCE}")
 by_repo = defaultdict(list)
 for c in all_commits:
@@ -121,12 +145,13 @@ def fmt(n):
 
 
 stats = [
+    ("Contributions", fmt(contributions)),
     ("Pull Requests", fmt(prs)),
     ("PRs Reviewed", fmt(reviews)),
     ("Lines Changed", fmt(lines)),
 ]
 
-W, H = 660, 170
+W, H = 800, 170
 card_w = W // len(stats)
 svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">']
 svg.append(
@@ -161,4 +186,4 @@ svg.append("</svg>")
 with open("metrics.svg", "w") as f:
     f.write("".join(svg))
 
-print(f"prs={prs} reviews={reviews} lines={lines} repos={len(by_repo)} commits_inspected={len(all_commits)}")
+print(f"contributions={contributions} prs={prs} reviews={reviews} lines={lines} repos={len(by_repo)} commits_inspected={len(all_commits)}")
