@@ -19,10 +19,4 @@ Here are some ideas to get you started:
 
 ![Metrics](./metrics.svg)
 
-<p>
-  <img src="https://github-readme-streak-stats.herokuapp.com/?user=garvit14&theme=github-dark-blue" alt="GitHub streak" />
-</p>
-
-[![Activity graph](https://github-readme-activity-graph.vercel.app/graph?username=garvit14&theme=github-compact)](https://github.com/ashutosh00710/github-readme-activity-graph)
-
-<sub>📌 The metrics image above is regenerated daily via GitHub Actions (`.github/workflows/metrics.yml`) and includes a 1-year contribution calendar, lines added/removed, top languages, PR/issue follow-up, and recent activity.</sub>
+<sub>📌 Regenerated daily by `.github/workflows/metrics.yml`.</sub>
