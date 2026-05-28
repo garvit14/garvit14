@@ -15,6 +15,6 @@ Here are some ideas to get you started:
 - ⚡ Fun fact: ...
 -->
 
-![Your GitHub stats](https://github-readme-stats.vercel.app/api?username=YOUR_USERNAME&show_icons=true&count_private=true)
+![Your GitHub stats](https://github-readme-stats.vercel.app/api?username=garvit14&show_icons=true&count_private=true)
 
-[![Your GitHub Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=YOUR_USERNAME&theme=github)](https://github.com/ashutosh00710/github-readme-activity-graph)
+[![Your GitHub Activity Graph](https://github-readme-activity-graph.vercel.app/graph?username=garvit14&theme=github)](https://github.com/ashutosh00710/github-readme-activity-graph)
