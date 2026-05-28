@@ -70,46 +70,12 @@ def paginate_commits(q, max_pages=10):
 
 
 prs = search_total(f"type:pr author:{USER} created:>={SINCE}")
-prs_merged = search_total(f"type:pr author:{USER} created:>={SINCE} is:merged")
 reviews = search_total(f"type:pr -author:{USER} reviewed-by:{USER} updated:>={SINCE}")
-merge_rate_pct = int(round(prs_merged / prs * 100)) if prs else 0
 
 all_commits = paginate_commits(f"author:{USER} author-date:>={SINCE}")
 by_repo = defaultdict(list)
 for c in all_commits:
     by_repo[c["repository"]["full_name"]].append(c["sha"])
-
-# Active days via contributionCalendar — counts all activity types (commits, PRs,
-# reviews, issues, including the org-restricted ones search/commits would miss).
-calendar_query = """
-query($login: String!, $from: DateTime!, $to: DateTime!) {
-  user(login: $login) {
-    contributionsCollection(from: $from, to: $to) {
-      contributionCalendar {
-        weeks { contributionDays { contributionCount } }
-      }
-    }
-  }
-}
-"""
-calendar_resp = gh(
-    "https://api.github.com/graphql",
-    method="POST",
-    data={
-        "query": calendar_query,
-        "variables": {
-            "login": USER,
-            "from": ONE_YEAR_AGO.isoformat(),
-            "to": NOW.isoformat(),
-        },
-    },
-)
-active_days = sum(
-    1
-    for week in calendar_resp["data"]["user"]["contributionsCollection"]["contributionCalendar"]["weeks"]
-    for day in week["contributionDays"]
-    if day["contributionCount"] > 0
-)
 
 
 def graphql_lines(owner, name, shas):
@@ -158,18 +124,16 @@ stats = [
     ("Pull Requests", fmt(prs)),
     ("PRs Reviewed", fmt(reviews)),
     ("Lines Changed", fmt(lines)),
-    ("Active Days", f"{active_days}/365"),
-    ("PR Merge Rate", f"{merge_rate_pct}%"),
 ]
 
-W, H = 920, 170
+W, H = 660, 170
 card_w = W // len(stats)
 svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">']
 svg.append(
     "<style>"
     'text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}'
-    ".label{fill:#8b949e;font-size:14px;font-weight:500;}"
-    ".value{fill:#58a6ff;font-size:38px;font-weight:700;}"
+    ".label{fill:#8b949e;font-size:15px;font-weight:500;}"
+    ".value{fill:#58a6ff;font-size:42px;font-weight:700;}"
     ".title{fill:#c9d1d9;font-size:14px;font-weight:600;letter-spacing:0.5px;}"
     ".footer{fill:#6e7681;font-size:11px;}"
     "</style>"
@@ -197,8 +161,4 @@ svg.append("</svg>")
 with open("metrics.svg", "w") as f:
     f.write("".join(svg))
 
-print(
-    f"prs={prs} merged={prs_merged} merge_rate={merge_rate_pct}% "
-    f"reviews={reviews} lines={lines} active_days={active_days} "
-    f"repos={len(by_repo)} commits_inspected={len(all_commits)}"
-)
+print(f"prs={prs} reviews={reviews} lines={lines} repos={len(by_repo)} commits_inspected={len(all_commits)}")
