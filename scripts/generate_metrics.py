@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Generate metrics.svg with last-1-year stats: PRs, PR reviews, lines changed,
-max PR merges in a single day, and max lines changed in a single day.
+"""Generate metrics.svg with last-1-year stats: PRs, PR reviews, lines changed.
 
 Uses the GitHub search API instead of contributionsCollection because some orgs
 (e.g. nirvanatech) configure member-contribution privacy in a way that hides
@@ -58,18 +57,6 @@ def search_total(q):
     return gh(url)["total_count"]
 
 
-def paginate_issues(q, max_pages=10):
-    items = []
-    for page in range(1, max_pages + 1):
-        url = f"https://api.github.com/search/issues?q={quote(q)}&per_page=100&page={page}"
-        resp = gh(url)
-        page_items = resp.get("items", [])
-        items.extend(page_items)
-        if len(page_items) < 100:
-            break
-    return items
-
-
 def paginate_commits(q, max_pages=10):
     items = []
     for page in range(1, max_pages + 1):
@@ -85,16 +72,6 @@ def paginate_commits(q, max_pages=10):
 prs = search_total(f"type:pr author:{USER} created:>={SINCE}")
 reviews = search_total(f"type:pr -author:{USER} reviewed-by:{USER} updated:>={SINCE}")
 
-# Max PRs merged in a single day (author = USER, merged within the window).
-merged_prs = paginate_issues(f"type:pr author:{USER} merged:>={SINCE}")
-merges_per_day = defaultdict(int)
-for pr in merged_prs:
-    merged_at = (pr.get("pull_request") or {}).get("merged_at") or pr.get("closed_at")
-    if merged_at:
-        merges_per_day[merged_at[:10]] += 1
-max_pr_day = max(merges_per_day.values()) if merges_per_day else 0
-
-# Pull all commits to compute lines + per-day line max.
 all_commits = paginate_commits(f"author:{USER} author-date:>={SINCE}")
 by_repo = defaultdict(list)
 for c in all_commits:
@@ -104,10 +81,9 @@ for c in all_commits:
 def graphql_lines(owner, name, shas):
     chunks = [shas[i : i + 50] for i in range(0, len(shas), 50)]
     total = 0
-    per_day = defaultdict(int)
     for chunk in chunks:
         aliases = "\n".join(
-            f'c{i}: object(oid: "{sha}") {{ ... on Commit {{ additions deletions committedDate }} }}'
+            f'c{i}: object(oid: "{sha}") {{ ... on Commit {{ additions deletions }} }}'
             for i, sha in enumerate(chunk)
         )
         query = f'query {{ repository(owner: "{owner}", name: "{name}") {{ {aliases} }} }}'
@@ -122,29 +98,18 @@ def graphql_lines(owner, name, shas):
         repo_node = (resp.get("data") or {}).get("repository") or {}
         for i in range(len(chunk)):
             node = repo_node.get(f"c{i}")
-            if not node:
-                continue
-            changed = node.get("additions", 0) + node.get("deletions", 0)
-            total += changed
-            committed = node.get("committedDate")
-            if committed:
-                per_day[committed[:10]] += changed
-    return total, per_day
+            if node:
+                total += node.get("additions", 0) + node.get("deletions", 0)
+    return total
 
 
 lines = 0
-lines_per_day = defaultdict(int)
 for repo, shas in by_repo.items():
     owner, name = repo.split("/", 1)
     try:
-        repo_total, repo_per_day = graphql_lines(owner, name, shas)
-        lines += repo_total
-        for date, changed in repo_per_day.items():
-            lines_per_day[date] += changed
+        lines += graphql_lines(owner, name, shas)
     except Exception as e:
         print(f"warn lines {repo}: {e}", file=sys.stderr)
-
-max_lines_day = max(lines_per_day.values()) if lines_per_day else 0
 
 
 def fmt(n):
@@ -159,18 +124,16 @@ stats = [
     ("Pull Requests", fmt(prs)),
     ("PRs Reviewed", fmt(reviews)),
     ("Lines Changed", fmt(lines)),
-    ("Max PRs / Day", fmt(max_pr_day)),
-    ("Max Lines / Day", fmt(max_lines_day)),
 ]
 
-W, H = 920, 170
+W, H = 660, 170
 card_w = W // len(stats)
 svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">']
 svg.append(
     "<style>"
     'text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;}'
-    ".label{fill:#8b949e;font-size:14px;font-weight:500;}"
-    ".value{fill:#58a6ff;font-size:40px;font-weight:700;}"
+    ".label{fill:#8b949e;font-size:15px;font-weight:500;}"
+    ".value{fill:#58a6ff;font-size:42px;font-weight:700;}"
     ".title{fill:#c9d1d9;font-size:14px;font-weight:600;letter-spacing:0.5px;}"
     ".footer{fill:#6e7681;font-size:11px;}"
     "</style>"
@@ -198,8 +161,4 @@ svg.append("</svg>")
 with open("metrics.svg", "w") as f:
     f.write("".join(svg))
 
-print(
-    f"prs={prs} reviews={reviews} lines={lines} "
-    f"max_pr_day={max_pr_day} max_lines_day={max_lines_day} "
-    f"repos={len(by_repo)} commits_inspected={len(all_commits)} merged_prs={len(merged_prs)}"
-)
+print(f"prs={prs} reviews={reviews} lines={lines} repos={len(by_repo)} commits_inspected={len(all_commits)}")
