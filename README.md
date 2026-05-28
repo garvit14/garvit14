@@ -1,5 +1,3 @@
-## Hi there 👋
-
 <!--
 **garvit14/garvit14** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
 
@@ -19,4 +17,4 @@ Here are some ideas to get you started:
 
 ![Metrics](./metrics.svg)
 
-<sub>📌 Regenerated daily by `.github/workflows/metrics.yml`.</sub>
+<sub>📌 Updated daily</sub>
